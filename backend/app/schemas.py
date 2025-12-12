@@ -91,3 +91,14 @@ class AgentDefinition(BaseModel):
     model: str
     tools: List[AgentDefinitionTool]
     policy: AgentDefinitionPolicy
+
+
+class AgentQARequest(BaseModel):
+    question: str = Field(..., min_length=1)
+    session_id: Optional[str] = None
+
+
+class AgentQAResponse(BaseModel):
+    question: str
+    answer: str
+    session_id: Optional[str] = None

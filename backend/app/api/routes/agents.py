@@ -8,6 +8,9 @@ from sqlmodel import Session, select
 from app.database import get_session
 from app import models
 from app import schemas
+from app.agents.qa_graph import build_qa_graph
+from app.config import get_agent_chat_model
+from langchain_core.messages import AIMessage, HumanMessage
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 
@@ -207,4 +210,37 @@ def get_definition(agent_id: int, session: Session = Depends(get_session)) -> sc
         model=agent.model,
         tools=tools_payload,
         policy=policy_payload,
+    )
+
+
+@router.post("/{agent_id}/qa", response_model=schemas.AgentQAResponse)
+def run_agent_qa(
+    agent_id: int,
+    request: schemas.AgentQARequest,
+    session: Session = Depends(get_session),
+) -> schemas.AgentQAResponse:
+    agent = _get_agent_or_404(agent_id, session)
+
+    try:
+        chat_model = get_agent_chat_model(agent)
+    except Exception as exc:  # keeping minimal handling for now
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    graph = build_qa_graph(chat_model)
+
+    initial_state = {"messages": [HumanMessage(content=request.question)]}
+    final_state = graph.invoke(initial_state)
+
+    messages = final_state.get("messages", []) if isinstance(final_state, dict) else []
+    assistant_messages = [m for m in messages if isinstance(m, AIMessage)]
+
+    if not assistant_messages:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="No answer returned by model")
+
+    answer_message = assistant_messages[-1]
+
+    return schemas.AgentQAResponse(
+        question=request.question,
+        answer=getattr(answer_message, "content", ""),
+        session_id=request.session_id,
     )
