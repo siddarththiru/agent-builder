@@ -1,12 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session
+from dotenv import load_dotenv, find_dotenv
 
 from app.database import engine, get_session, init_db
 from app.api.routes import agents, tools
 from app.seeds import seed_tools
 
 app = FastAPI(title="Agent Builder API", version="0.1.0")
+
+load_dotenv(find_dotenv(), override=False)
 
 app.add_middleware(
     CORSMiddleware,

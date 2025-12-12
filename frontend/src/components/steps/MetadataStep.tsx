@@ -1,7 +1,7 @@
 import React from "react";
 import { AgentCreate } from "../../types";
 
-const models = ["gpt-4.1-mini", "gpt-4.1", "gpt-4.1-extended"];
+const models = ["gemini-2.5-flash"];
 
 const labelStyle: React.CSSProperties = { display: "block", marginBottom: "6px", fontWeight: 600, color: "#000000" };
 const inputStyle: React.CSSProperties = {

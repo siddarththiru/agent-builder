@@ -21,7 +21,7 @@ import {
   getAgentTools,
 } from "../api/client";
 
-const models = ["gpt-4.1-mini", "gpt-4.1", "gpt-4.1-extended"];
+const DEFAULT_MODEL = "gemini-2.5-flash";
 
 const steps = [
   { key: "metadata", label: "Metadata" },
@@ -52,7 +52,7 @@ const AgentBuilderPage: React.FC = () => {
     name: "",
     description: "",
     purpose: "",
-    model: models[0],
+    model: DEFAULT_MODEL,
   });
 
   const [policyForm, setPolicyForm] = useState<PolicyCreate>({

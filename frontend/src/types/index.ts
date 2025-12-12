@@ -60,3 +60,14 @@ export type AgentDefinition = {
   tools: AgentDefinitionTool[];
   policy: AgentDefinitionPolicy;
 };
+
+export type AgentQARequest = {
+  question: string;
+  session_id?: string;
+};
+
+export type AgentQAResponse = {
+  question: string;
+  answer: string;
+  session_id?: string | null;
+};

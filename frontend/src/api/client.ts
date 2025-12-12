@@ -3,6 +3,8 @@ import {
   Agent,
   AgentCreate,
   AgentDefinition,
+  AgentQARequest,
+  AgentQAResponse,
   Policy,
   PolicyCreate,
   Tool,
@@ -50,5 +52,10 @@ export const getPolicy = async (agentId: number): Promise<Policy> => {
 
 export const getDefinition = async (agentId: number): Promise<AgentDefinition> => {
   const { data } = await api.get<AgentDefinition>(`/agents/${agentId}/definition`);
+  return data;
+};
+
+export const askAgent = async (agentId: number, payload: AgentQARequest): Promise<AgentQAResponse> => {
+  const { data } = await api.post<AgentQAResponse>(`/agents/${agentId}/qa`, payload);
   return data;
 };
