@@ -37,9 +37,33 @@ class ToolRead(BaseModel):
     description: str
     input_schema: str
     output_schema: str
+    usable: bool
 
     class Config:
         orm_mode = True
+
+
+class ToolCreate(BaseModel):
+    name: str = Field(..., min_length=1)
+    description: str = Field(..., min_length=10)
+    input_schema: str = Field(...)  # JSON schema as string
+    output_schema: str = Field(...)  # JSON schema as string
+
+
+class ToolValidateRequest(BaseModel):
+    name: str = Field(..., min_length=1)
+    description: str = Field(..., min_length=10)
+    input_schema: str = Field(...)  # JSON schema as string
+    output_schema: str = Field(...)  # JSON schema as string
+
+
+class ToolValidateResponse(BaseModel):
+    valid: bool
+    name: str
+    description: str
+    input_schema: dict
+    output_schema: dict
+    errors: List[str] = []
 
 
 class ToolsUpdate(BaseModel):
@@ -102,3 +126,45 @@ class AgentQAResponse(BaseModel):
     question: str
     answer: str
     session_id: Optional[str] = None
+
+
+class SessionCreate(BaseModel):
+    agent_id: int
+    user_input: str
+
+
+class SessionRead(BaseModel):
+    id: int
+    session_id: str
+    agent_id: int
+    status: str
+    user_input: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+
+
+class LogRead(BaseModel):
+    id: int
+    session_id: str
+    agent_id: int
+    event_type: str
+    event_data: str
+    timestamp: datetime
+
+    class Config:
+        orm_mode = True
+
+
+class RunAgentRequest(BaseModel):
+    agent_id: int
+    user_input: str = Field(..., min_length=1)
+
+
+class RunAgentResponse(BaseModel):
+    session_id: str
+    status: str
+    final_output: Optional[str] = None
+    error: Optional[str] = None
