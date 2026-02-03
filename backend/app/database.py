@@ -8,6 +8,10 @@ engine = create_engine(
     connect_args={"check_same_thread": False},
 )
 
+def get_db_url() -> str:
+    return DATABASE_URL
+
+
 def get_session() -> Iterator[Session]:
     with Session(engine) as session:
         yield session
