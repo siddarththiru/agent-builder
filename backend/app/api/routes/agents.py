@@ -9,18 +9,17 @@ from app.database import get_session
 from app import models
 from app import schemas
 from app.agents.qa_graph import build_qa_graph
+from app.agents.runtime import AgentRuntime
 from app.config import get_agent_chat_model
 from langchain_core.messages import AIMessage, HumanMessage
 
 router = APIRouter(prefix="/agents", tags=["agents"])
-
 
 def _get_agent_or_404(agent_id: int, session: Session) -> models.Agent:
     agent = session.get(models.Agent, agent_id)
     if not agent:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
     return agent
-
 
 @router.post("", response_model=schemas.AgentRead, status_code=status.HTTP_201_CREATED)
 def create_agent(agent_in: schemas.AgentCreate, session: Session = Depends(get_session)) -> schemas.AgentRead:
@@ -34,12 +33,10 @@ def create_agent(agent_in: schemas.AgentCreate, session: Session = Depends(get_s
     session.refresh(agent)
     return agent
 
-
 @router.get("/{agent_id}", response_model=schemas.AgentRead)
 def get_agent(agent_id: int, session: Session = Depends(get_session)) -> schemas.AgentRead:
     agent = _get_agent_or_404(agent_id, session)
     return agent
-
 
 @router.patch("/{agent_id}", response_model=schemas.AgentRead)
 def update_agent(
@@ -65,7 +62,6 @@ def update_agent(
     session.commit()
     session.refresh(agent)
     return agent
-
 
 @router.post("/{agent_id}/tools", response_model=List[schemas.ToolRead])
 def set_agent_tools(
@@ -100,7 +96,6 @@ def set_agent_tools(
 
     return tools
 
-
 @router.get("/{agent_id}/tools", response_model=List[schemas.ToolRead])
 def list_agent_tools(agent_id: int, session: Session = Depends(get_session)) -> List[schemas.ToolRead]:
     _get_agent_or_404(agent_id, session)
@@ -110,7 +105,6 @@ def list_agent_tools(agent_id: int, session: Session = Depends(get_session)) -> 
         .where(models.AgentTool.agent_id == agent_id)
     ).all()
     return tools
-
 
 @router.post("/{agent_id}/policy", response_model=schemas.PolicyRead)
 def set_policy(
@@ -151,7 +145,6 @@ def set_policy(
     session.commit()
     session.refresh(policy)
     return policy
-
 
 @router.get("/{agent_id}/policy", response_model=schemas.PolicyRead)
 def get_policy(agent_id: int, session: Session = Depends(get_session)) -> schemas.PolicyRead:
@@ -212,7 +205,6 @@ def get_definition(agent_id: int, session: Session = Depends(get_session)) -> sc
         policy=policy_payload,
     )
 
-
 @router.post("/{agent_id}/qa", response_model=schemas.AgentQAResponse)
 def run_agent_qa(
     agent_id: int,
@@ -243,4 +235,60 @@ def run_agent_qa(
         question=request.question,
         answer=getattr(answer_message, "content", ""),
         session_id=request.session_id,
+    )
+
+
+@router.post("/run-agent", response_model=schemas.RunAgentResponse)
+def run_agent(
+    request: schemas.RunAgentRequest,
+    session: Session = Depends(get_session),
+) -> schemas.RunAgentResponse:
+    agent = _get_agent_or_404(request.agent_id, session)
+    
+    # Get complete agent definition
+    try:
+        definition_response = get_definition(request.agent_id, session)
+        agent_definition = schemas.AgentDefinition(**definition_response.dict())
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to load agent definition: {str(e)}"
+        )
+    
+    # Get chat model
+    try:
+        chat_model = get_agent_chat_model(agent)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to initialize chat model: {str(exc)}"
+        ) from exc
+    
+    # Initialize runtime
+    runtime = AgentRuntime(
+        agent_definition=agent_definition,
+        chat_model=chat_model,
+        db_session=session
+    )
+    
+    # Execute agent
+    result = runtime.execute(request.user_input)
+    
+    # Persist session record
+    session_record = models.Session(
+        session_id=result["session_id"],
+        agent_id=request.agent_id,
+        status=result["status"],
+        user_input=request.user_input
+    )
+    session.add(session_record)
+    session.commit()
+    
+    return schemas.RunAgentResponse(
+        session_id=result["session_id"],
+        status=result["status"],
+        final_output=result.get("final_output"),
+        error=result.get("error")
     )
