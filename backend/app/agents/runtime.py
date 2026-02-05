@@ -65,7 +65,10 @@ class AgentRuntime:
         interception_hook = InterceptionHook(
             session_id=session_id,
             agent_id=self.agent_def.agent_id,
-            logger=self.logger
+            logger=self.logger,
+            allowed_tool_ids=[tool.id for tool in self.agent_def.tools],
+            frequency_limit=self.agent_def.policy.frequency_limit,
+            require_approval_for_all=self.agent_def.policy.require_approval_for_all_tool_calls
         )
         
         # Build and execute graph
@@ -251,20 +254,47 @@ class AgentRuntime:
                 duration_ms=result.get("duration_ms", 0)
             )
             
-            # Append tool result to messages
-            messages = list(state["messages"])
-            messages.append(
-                ToolMessage(
-                    content=str(result),
-                    tool_call_id=pending_call.get("id", "unknown")
-                )
-            )
+            # Check if execution was blocked
+            if result.get("blocked"):
+                return {
+                    **state,
+                    "execution_status": "terminated",
+                    "error": result.get("error", "Tool execution was blocked by policy"),
+                    "pending_tool_call": None
+                }
             
-            return {
-                **state,
-                "messages": messages,
-                "pending_tool_call": None
-            }
+            # Check if execution was paused (approval required)
+            if result.get("paused"):
+                return {
+                    **state,
+                    "execution_status": "paused",
+                    "error": result.get("error", "Tool execution paused - awaiting approval"),
+                    "pending_tool_call": None
+                }
+            
+            # Successful execution - append tool result to messages
+            if result.get("success"):
+                messages = list(state["messages"])
+                messages.append(
+                    ToolMessage(
+                        content=str(result),
+                        tool_call_id=pending_call.get("id", "unknown")
+                    )
+                )
+                
+                return {
+                    **state,
+                    "messages": messages,
+                    "pending_tool_call": None
+                }
+            else:
+                # Tool failed
+                return {
+                    **state,
+                    "execution_status": "failed",
+                    "error": result.get("error", "Tool execution failed"),
+                    "pending_tool_call": None
+                }
         
         except Exception as e:
             return {

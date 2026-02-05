@@ -40,13 +40,24 @@ class ToolAdapter:
         
         # Pre-execution interception
         start_time = time.time()
-        interception_result = interception_hook(tool_name, params)
+        interception_decision = interception_hook(tool_name, params)
         
-        if interception_result != "allowed":
+        # Handle enforcement decisions
+        if interception_decision.decision == "block":
             return {
                 "success": False,
                 "tool": tool_name,
-                "error": f"Tool execution blocked: {interception_result}",
+                "error": f"Tool execution blocked: {interception_decision.reason}",
+                "blocked": True,
+                "duration_ms": (time.time() - start_time) * 1000
+            }
+        
+        if interception_decision.decision == "pause":
+            return {
+                "success": False,
+                "tool": tool_name,
+                "error": f"Tool execution paused: {interception_decision.reason}",
+                "paused": True,
                 "duration_ms": (time.time() - start_time) * 1000
             }
         
