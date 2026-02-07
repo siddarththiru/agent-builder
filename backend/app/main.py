@@ -4,7 +4,7 @@ from sqlmodel import Session
 from dotenv import load_dotenv, find_dotenv
 
 from app.database import engine, get_session, init_db
-from app.api.routes import agents, tools
+from app.api.routes import agents, tools, logs
 from app.seeds import seed_tools
 
 app = FastAPI(title="Agent Builder API", version="0.1.0")
@@ -21,6 +21,7 @@ app.add_middleware(
 
 app.include_router(agents.router)
 app.include_router(tools.router)
+app.include_router(logs.router)
 
 
 @app.on_event("startup")
