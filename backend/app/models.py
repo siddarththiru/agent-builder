@@ -57,8 +57,9 @@ class Session(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     session_id: str = Field(unique=True, index=True)
     agent_id: int = Field(foreign_key="agents.id")
-    status: str = Field(default="running")  # running | paused | completed | failed
+    status: str = Field(default="running")  # running | paused | completed | failed | terminated
     user_input: str
+    state_snapshot: Optional[str] = None  # JSON snapshot of runtime state for resume
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -75,3 +76,17 @@ class Log(SQLModel, table=True):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
     session: Session = Relationship(back_populates="logs")
+
+class Approval(SQLModel, table=True):
+    __tablename__ = "approvals"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    session_id: str = Field(foreign_key="sessions.session_id", index=True)
+    agent_id: int = Field(foreign_key="agents.id")
+    tool_id: int = Field(foreign_key="tools.id")
+    tool_name: str
+    status: str = Field(default="pending")  # pending | approved | denied
+    requested_at: datetime = Field(default_factory=datetime.utcnow)
+    decided_at: Optional[datetime] = None
+    decided_by: Optional[str] = None  # Placeholder for future authentication
+    decision_reason: Optional[str] = None
