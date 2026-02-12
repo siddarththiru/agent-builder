@@ -38,9 +38,13 @@ class ToolAdapter:
         if not self.validate_params(tool_name, params):
             raise ValueError(f"Invalid parameters for tool: {tool_name}")
         
+        # Get tool_id for interception
+        tool_def = self.tools[tool_name]
+        tool_id = tool_def.id
+        
         # Pre-execution interception
         start_time = time.time()
-        interception_decision = interception_hook(tool_name, params)
+        interception_decision = interception_hook(tool_name, params, tool_id)
         
         # Handle enforcement decisions
         if interception_decision.decision == "block":
