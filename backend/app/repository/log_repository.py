@@ -45,6 +45,8 @@ class LogRepository:
         "enforcement_decision",
         "runtime_error",
         "threat_classification",
+        "approval_requested",
+        "approval_decision",
     }
     
     def __init__(self, session: Session):

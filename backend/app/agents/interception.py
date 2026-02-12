@@ -1,6 +1,11 @@
 from typing import Any, Dict
 
+from sqlmodel import Session as DBSession
+from datetime import datetime
+import json
+
 from app.agents.event_logger import EventLogger
+from app import models
 
 class InterceptionDecision:   
     def __init__(
@@ -27,6 +32,7 @@ class InterceptionHook:
         session_id: str,
         agent_id: int,
         logger: EventLogger,
+        db_session: DBSession,
         allowed_tool_ids: list = None,
         frequency_limit: int = None,
         require_approval_for_all: bool = False
@@ -34,6 +40,7 @@ class InterceptionHook:
         self.session_id = session_id
         self.agent_id = agent_id
         self.logger = logger
+        self.db_session = db_session
         self.allowed_tool_ids = allowed_tool_ids or []
         self.frequency_limit = frequency_limit
         self.require_approval_for_all = require_approval_for_all
@@ -70,6 +77,7 @@ class InterceptionHook:
                 reason=f"Tool '{tool_name}' requires user approval before execution",
                 policy_id=None
             )
+            self._create_approval_request(tool_name, tool_id, params)
             self._log_enforcement_decision(tool_name, decision, tool_id)
             return decision
         
@@ -104,5 +112,47 @@ class InterceptionHook:
             session_id=self.session_id,
             agent_id=self.agent_id,
             event_type="enforcement_decision",
+            event_data=event_data
+        )
+    
+    def _create_approval_request(
+        self,
+        tool_name: str,
+        tool_id: int,
+        params: Dict[str, Any]
+    ) -> None:
+        # Create approval record
+        approval = models.Approval(
+            session_id=self.session_id,
+            agent_id=self.agent_id,
+            tool_id=tool_id,
+            tool_name=tool_name,
+            status="pending",
+            requested_at=datetime.utcnow()
+        )
+        self.db_session.add(approval)
+        
+        # Update session status to paused
+        from sqlmodel import select
+        stmt = select(models.Session).where(models.Session.session_id == self.session_id)
+        session_record = self.db_session.exec(stmt).first()
+        if session_record:
+            session_record.status = "paused"
+            session_record.updated_at = datetime.utcnow()
+            self.db_session.add(session_record)
+        
+        self.db_session.commit()
+        
+        # Log approval_requested event
+        event_data = {
+            "tool_name": tool_name,
+            "tool_id": tool_id,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        self.logger.emit_event(
+            session_id=self.session_id,
+            agent_id=self.agent_id,
+            event_type="approval_requested",
             event_data=event_data
         )
