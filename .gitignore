@@ -15,3 +15,10 @@ yarn-error.log*
 
 # Environment variables
 .env
+
+# Log files
+*.log
+
+# Dev Testing Folders and notes
+Readme files/
+Test files/
