@@ -7,6 +7,7 @@ class RuntimeState(TypedDict):
     agent_id: int
     messages: List[BaseMessage]
     pending_tool_call: Optional[dict]
+    pending_tool_decision: Optional[str]
     execution_status: str
     final_output: Optional[str]
     error: Optional[str]

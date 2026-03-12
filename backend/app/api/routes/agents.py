@@ -292,3 +292,71 @@ def run_agent(
         final_output=result.get("final_output"),
         error=result.get("error")
     )
+
+
+@router.post("/resume-agent/{session_id}", response_model=schemas.RunAgentResponse)
+def resume_agent(
+    session_id: str,
+    session: Session = Depends(get_session),
+) -> schemas.RunAgentResponse:
+    # Get session record
+    stmt = select(models.Session).where(models.Session.session_id == session_id)
+    session_record = session.exec(stmt).first()
+    
+    if not session_record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Session {session_id} not found"
+        )
+    
+    # Get agent
+    agent = _get_agent_or_404(session_record.agent_id, session)
+    
+    # Get agent definition
+    try:
+        definition_response = get_definition(session_record.agent_id, session)
+        agent_definition = schemas.AgentDefinition(**definition_response.dict())
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to load agent definition: {str(e)}"
+        )
+    
+    # Get chat model
+    try:
+        chat_model = get_agent_chat_model(agent)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to initialize chat model: {str(exc)}"
+        ) from exc
+    
+    # Initialize runtime
+    runtime = AgentRuntime(
+        agent_definition=agent_definition,
+        chat_model=chat_model,
+        db_session=session
+    )
+    
+    # Resume session
+    try:
+        result = runtime.resume_session(session_id)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to resume session: {str(e)}"
+        )
+    
+    return schemas.RunAgentResponse(
+        session_id=result["session_id"],
+        status=result["status"],
+        final_output=result.get("final_output"),
+        error=result.get("error")
+    )
