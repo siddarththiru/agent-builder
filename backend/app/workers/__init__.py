@@ -14,6 +14,14 @@ from app.workers.runner import (
     WorkerConfig,
     start_worker,
 )
+from app.workers.notification_channels import (
+    NotificationChannel,
+    ConsoleNotificationChannel,
+    WebhookNotificationChannel,
+    NotificationDispatcher,
+)
+from app.workers.notification_worker import NotificationWorker
+from app.workers.notification_runner import NotificationService, start_notification_worker
 
 __all__ = [
     "ThreatClassificationWorker",
@@ -26,4 +34,11 @@ __all__ = [
     "ThreatClassifierService",
     "WorkerConfig",
     "start_worker",
+    "NotificationChannel",
+    "ConsoleNotificationChannel",
+    "WebhookNotificationChannel",
+    "NotificationDispatcher",
+    "NotificationWorker",
+    "NotificationService",
+    "start_notification_worker",
 ]
