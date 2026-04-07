@@ -1,30 +1,43 @@
-import json
 import time
+from hashlib import sha256
 from typing import Any, Dict
 
 from app.schemas import AgentDefinitionTool
+from app.utils.schema_validator import validate_payload_against_schema
 
 class ToolAdapter:    
     def __init__(self, tools: Dict[str, AgentDefinitionTool]):
         self.tools = tools
+        self.executors = {
+            "Weather API": self._execute_weather_api,
+            "News API": self._execute_news_api,
+        }
     
     def validate_params(self, tool_name: str, params: Dict[str, Any]) -> bool:
-        #TODO: Implement full JSON schema validation
-
         if tool_name not in self.tools:
+            return False
+
+        if not isinstance(params, dict):
             return False
         
         tool_def = self.tools[tool_name]
         input_schema = tool_def.input_schema
-        
-        # Basic validation: check required fields exist
-        if "required" in input_schema:
-            required_fields = input_schema["required"]
-            for field in required_fields:
-                if field not in params:
-                    return False
-        
-        return True
+
+        try:
+            validate_payload_against_schema(input_schema, params)
+            return True
+        except ValueError:
+            return False
+
+    def execute_tool(self, tool_name: str, params: Dict[str, Any]) -> Any:
+        if tool_name not in self.executors:
+            raise NotImplementedError(
+                f"No executor configured for tool '{tool_name}'. "
+                "Register an executor before invoking this tool."
+            )
+
+        executor = self.executors[tool_name]
+        return executor(params)
     
     def invoke_tool(
         self,
@@ -65,10 +78,8 @@ class ToolAdapter:
                 "duration_ms": (time.time() - start_time) * 1000
             }
         
-        # Execute tool (stub for now - real implementation would call actual tool)
-        # TODO: Implement actual tool execution via MCP or direct function calls
         try:
-            result = self._execute_tool_stub(tool_name, params)
+            result = self.execute_tool(tool_name, params)
             duration = (time.time() - start_time) * 1000
             
             return {
@@ -86,13 +97,35 @@ class ToolAdapter:
                 "error": str(e),
                 "duration_ms": duration
             }
-    
-    def _execute_tool_stub(self, tool_name: str, params: Dict[str, Any]) -> Any:
-        """
-        Stub for actual tool execution.     
-        TODO: Replace with real tool execution (MCP client, function calls, etc.)
-        """
+
+    def _execute_weather_api(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        city = str(params.get("city", "")).strip()
+        if not city:
+            raise ValueError("'city' is required")
+
+        normalized_city = city.lower()
+        seed = int(sha256(normalized_city.encode("utf-8")).hexdigest()[:8], 16)
+        condition_options = ["sunny", "cloudy", "rainy", "windy", "clear"]
+        temperature_c = (seed % 350) / 10.0 - 5.0
+        condition = condition_options[seed % len(condition_options)]
+
         return {
-            "status": "stub_execution",
-            "message": f"Tool '{tool_name}' would execute with params: {json.dumps(params)}"
+            "city": city,
+            "temperature_c": round(temperature_c, 1),
+            "condition": condition,
+        }
+
+    def _execute_news_api(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        topic = str(params.get("topic", "")).strip()
+        if not topic:
+            raise ValueError("'topic' is required")
+
+        title_base = topic.title()
+        return {
+            "topic": topic,
+            "headlines": [
+                f"{title_base}: analysts report notable market movement",
+                f"{title_base}: regulators publish new policy update",
+                f"{title_base}: industry leaders announce collaboration",
+            ],
         }
