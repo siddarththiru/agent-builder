@@ -158,7 +158,7 @@ class LogAggregator:
                     if any(x in params_str for x in ["path", "file", "directory"]):
                         summary.input_sensitivity_flags.add("file_path_possible")
             
-            elif event_type == "tool_call_result":
+            elif event_type in {"tool_call_result", "tool_result"}:
                 result_status = event_data.get("status", "unknown")
                 if result_status == "success":
                     summary.success_count += 1
@@ -271,7 +271,7 @@ class LogAggregator:
                         summary.input_sensitivity_flags.add("credentials_possible")
                     if any(x in params_str for x in ["path", "file", "directory"]):
                         summary.input_sensitivity_flags.add("file_path_possible")
-            elif event_type == "tool_call_result":
+            elif event_type in {"tool_call_result", "tool_result"}:
                 status = event_data.get("status", "unknown")
                 if status == "success":
                     summary.success_count += 1
