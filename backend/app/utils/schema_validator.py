@@ -1,7 +1,8 @@
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict
 
-from pydantic import ValidationError
+from jsonschema import ValidationError as JSONSchemaValidationError
+from jsonschema.validators import validator_for
 
 def validate_json_schema(schema_str: str) -> Dict[str, Any]:
     try:
@@ -12,18 +13,38 @@ def validate_json_schema(schema_str: str) -> Dict[str, Any]:
     if not isinstance(schema, dict):
         raise ValueError("Schema must be a JSON object (dict)")
     
-    # Basic JSON Schema validation
-    # At minimum, should have type or properties
-    has_type = "type" in schema
-    has_properties = "properties" in schema
-    has_ref = "$ref" in schema
-    
-    if not (has_type or has_properties or has_ref):
-        raise ValueError(
-            "Schema must have 'type', 'properties', or '$ref' field"
-        )
+    # Validate schema semantics against the declared JSON Schema draft.
+    # This catches malformed keyword usage early (e.g. minimum on strings).
+    try:
+        validator_cls = validator_for(schema)
+        validator_cls.check_schema(schema)
+    except Exception as e:
+        raise ValueError(f"Invalid JSON Schema: {str(e)}")
     
     return schema
+
+
+def validate_payload_against_schema(schema: Dict[str, Any], payload: Dict[str, Any]) -> None:
+    try:
+        validator_cls = validator_for(schema)
+        validator_cls.check_schema(schema)
+        validator = validator_cls(schema)
+        errors = sorted(validator.iter_errors(payload), key=lambda e: list(e.path))
+    except JSONSchemaValidationError as e:
+        raise ValueError(f"Invalid payload: {e.message}")
+    except Exception as e:
+        raise ValueError(f"Schema validation error: {str(e)}")
+
+    if not errors:
+        return
+
+    messages = []
+    for err in errors[:5]:
+        field = ".".join(str(part) for part in err.path)
+        location = field if field else "<root>"
+        messages.append(f"{location}: {err.message}")
+
+    raise ValueError("; ".join(messages))
 
 def validate_tool_schema(name: str, description: str, input_schema: str, output_schema: str) -> Dict[str, Any]:
     errors = []
