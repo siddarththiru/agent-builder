@@ -1,7 +1,8 @@
 from collections.abc import Iterator
+import os
 from sqlmodel import Session, SQLModel, create_engine
 
-DATABASE_URL = "sqlite:///./agent_builder.db"
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./agent_builder.db")
 engine = create_engine(
     DATABASE_URL,
     echo=False,

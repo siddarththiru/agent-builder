@@ -6,3 +6,4 @@ langchain-core==0.2.5
 langchain-google-genai==1.0.5
 langgraph==0.0.69
 python-dotenv==1.0.1
+jsonschema==4.23.0

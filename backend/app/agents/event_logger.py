@@ -70,15 +70,19 @@ class EventLogger:
         agent_id: int,
         tool_name: str,
         result: Any,
-        duration_ms: float
+        duration_ms: float,
+        success: bool = True
     ) -> None:
+        output_type = type(result).__name__ if result is not None else "none"
         self.emit_event(
             session_id=session_id,
             agent_id=agent_id,
-            event_type="tool_result",
+            event_type="tool_call_result",
             event_data={
                 "tool": tool_name,
+                "status": "success" if success else "failure",
                 "result": str(result),
+                "output_type": output_type,
                 "duration_ms": duration_ms
             }
         )
