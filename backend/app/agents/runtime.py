@@ -346,7 +346,8 @@ class AgentRuntime:
                 agent_id=state["agent_id"],
                 tool_name=tool_name,
                 result=result.get("result", result.get("error")),
-                duration_ms=result.get("duration_ms", 0)
+                duration_ms=result.get("duration_ms", 0),
+                success=bool(result.get("success", False))
             )
             
             # Check if execution was blocked
@@ -498,7 +499,7 @@ class AgentRuntime:
         try:
             # Execute tool without interception (already approved)
             start_time = time.time()
-            result = tool_adapter._execute_tool_stub(tool_name, tool_params)
+            result = tool_adapter.execute_tool(tool_name, tool_params)
             duration = (time.time() - start_time) * 1000
             
             tool_result = {
@@ -514,7 +515,8 @@ class AgentRuntime:
                 agent_id=self.agent_def.agent_id,
                 tool_name=tool_name,
                 result=result,
-                duration_ms=duration
+                duration_ms=duration,
+                success=True
             )
             
             # Add tool result to messages and update state at the invoke_tool node

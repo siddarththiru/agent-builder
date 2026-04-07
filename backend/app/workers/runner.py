@@ -29,7 +29,7 @@ def setup_logging(level: int = logging.INFO):
 class WorkerConfig:    
     def __init__(
         self,
-        database_url: str = "sqlite:///app.db",
+        database_url: str = "sqlite:///./agent_builder.db",
         mcp_url: str = "http://localhost:11434/",
         polling_interval_minutes: int = 15,
         log_level: str = "INFO",
@@ -50,7 +50,7 @@ class WorkerConfig:
         import os
         
         return cls(
-            database_url=os.getenv("DATABASE_URL", "sqlite:///app.db"),
+            database_url=os.getenv("DATABASE_URL", "sqlite:///./agent_builder.db"),
             mcp_url=os.getenv("MCP_URL", "http://localhost:11434"),
             polling_interval_minutes=int(os.getenv("POLLING_INTERVAL_MINUTES", "15")),
             log_level=os.getenv("LOG_LEVEL", "INFO"),
@@ -135,7 +135,7 @@ class ThreatClassifierService:
         self.running = False
 
 def start_worker(
-    database_url: str = "sqlite:///app.db",
+    database_url: str = "sqlite:///./agent_builder.db",
     mcp_url: str = "http://localhost:3000",
     polling_interval_minutes: int = 15,
 ):
@@ -168,7 +168,7 @@ def main():
     parser.add_argument(
         "--database-url",
         type=str,
-        default="sqlite:///app.db",
+        default="sqlite:///./agent_builder.db",
         help="Database URL",
     )
     parser.add_argument(

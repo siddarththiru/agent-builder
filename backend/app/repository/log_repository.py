@@ -42,6 +42,7 @@ class LogRepository:
         "tool_call",
         "tool_call_attempt",
         "tool_call_result",
+        "tool_result",
         "enforcement_decision",
         "runtime_error",
         "threat_classification",
@@ -123,7 +124,9 @@ class LogRepository:
         
         if not logs:
             # Check if session exists
-            session_record = self.session.get(models.Session, session_id)
+            session_record = self.session.exec(
+                select(models.Session).where(models.Session.session_id == session_id)
+            ).first()
             if not session_record:
                 raise ValueError(f"Session not found: {session_id}")
         
