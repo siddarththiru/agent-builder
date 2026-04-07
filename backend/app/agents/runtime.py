@@ -42,6 +42,7 @@ class AgentRuntime:
         }
         
         self.system_prompt = self._build_system_prompt()
+        self.last_state_snapshot = None
         # Placeholder for PostgresSaver when DB-backed checkpoints are ready.
         self.checkpointer = MemorySaver()
     
@@ -422,6 +423,8 @@ class AgentRuntime:
             "pending_tool_decision": state.get("pending_tool_decision"),
             "execution_status": state.get("execution_status")
         }
+
+        self.last_state_snapshot = state_snapshot
         
         # Save to database
         stmt = select(models.Session).where(models.Session.session_id == session_id)

@@ -283,6 +283,8 @@ def run_agent(
         status=result["status"],
         user_input=request.user_input
     )
+    if result["status"] == "paused" and getattr(runtime, "last_state_snapshot", None):
+        session_record.state_snapshot = json.dumps(runtime.last_state_snapshot)
     session.add(session_record)
     session.commit()
     

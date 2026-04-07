@@ -2,7 +2,6 @@ from typing import Any, Dict
 
 from sqlmodel import Session as DBSession
 from datetime import datetime
-import json
 
 from app.agents.event_logger import EventLogger
 from app import models
@@ -47,6 +46,18 @@ class InterceptionHook:
         self.tool_call_count = {}  # Track per-tool call counts
     
     def intercept(self, tool_name: str, params: Dict[str, Any], tool_id: int = None) -> InterceptionDecision:
+        self.logger.emit_event(
+            session_id=self.session_id,
+            agent_id=self.agent_id,
+            event_type="tool_call_attempt",
+            event_data={
+                "tool_name": tool_name,
+                "tool_id": tool_id,
+                "params_provided": bool(params),
+                "timestamp": datetime.utcnow().isoformat(),
+            },
+        )
+
         # Rule 1: Check if tool is allowed
         if self.allowed_tool_ids and tool_id is not None:
             if tool_id not in self.allowed_tool_ids:
@@ -77,7 +88,7 @@ class InterceptionHook:
                 reason=f"Tool '{tool_name}' requires user approval before execution",
                 policy_id=None
             )
-            self._create_approval_request(tool_name, tool_id, params)
+            self._create_approval_request(tool_name, tool_id, bool(params))
             self._log_enforcement_decision(tool_name, decision, tool_id)
             return decision
         
@@ -119,7 +130,7 @@ class InterceptionHook:
         self,
         tool_name: str,
         tool_id: int,
-        params: Dict[str, Any]
+        params_provided: bool = False
     ) -> None:
         # Create approval record
         approval = models.Approval(
@@ -147,6 +158,7 @@ class InterceptionHook:
         event_data = {
             "tool_name": tool_name,
             "tool_id": tool_id,
+            "params_provided": params_provided,
             "timestamp": datetime.utcnow().isoformat()
         }
         

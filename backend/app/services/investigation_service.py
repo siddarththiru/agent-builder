@@ -8,7 +8,7 @@ from app.repository.log_repository import LogRepository
 
 _BLOCKED_FIELDS = frozenset({
     "params", "parameters", "raw_output", "output", "prompt", "user_input",
-    "traceback", "stack_trace", "credentials", "password", "token", "secret",
+    "result", "final_output", "traceback", "stack_trace", "credentials", "password", "token", "secret",
     "api_key", "apikey",
 })
 

@@ -224,6 +224,18 @@ def _sanitize_event_data(
             k: v for k, v in sanitized.items()
             if k not in ["params", "parameters"]
         }
+
+    if event_type == "tool_call_result":
+        sanitized = {
+            k: v for k, v in sanitized.items()
+            if k not in ["result", "raw_output", "output"]
+        }
+
+    if event_type == "session_end":
+        sanitized = {
+            k: v for k, v in sanitized.items()
+            if k not in ["final_output", "raw_output", "output"]
+        }
     
     # Never expose internal error details
     if event_type == "runtime_error":
