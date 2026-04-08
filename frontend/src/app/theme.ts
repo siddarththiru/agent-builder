@@ -140,5 +140,72 @@ export const theme = extendTheme({
         py: 1,
       },
     },
+    Input: {
+      variants: {
+        outline: {
+          field: {
+            bg: "bg.surface",
+            borderColor: "border.soft",
+            _hover: {
+              borderColor: "border.strong",
+            },
+            _focusVisible: {
+              borderColor: "brand.400",
+              boxShadow: "0 0 0 1px var(--chakra-colors-brand-400)",
+            },
+          },
+        },
+      },
+      defaultProps: {
+        variant: "outline",
+      },
+    },
+    Textarea: {
+      variants: {
+        outline: {
+          bg: "bg.surface",
+          borderColor: "border.soft",
+          _hover: {
+            borderColor: "border.strong",
+          },
+          _focusVisible: {
+            borderColor: "brand.400",
+            boxShadow: "0 0 0 1px var(--chakra-colors-brand-400)",
+          },
+        },
+      },
+      defaultProps: {
+        variant: "outline",
+      },
+    },
+    Select: {
+      variants: {
+        outline: {
+          field: {
+            bg: "bg.surface",
+            borderColor: "border.soft",
+            _hover: {
+              borderColor: "border.strong",
+            },
+            _focusVisible: {
+              borderColor: "brand.400",
+              boxShadow: "0 0 0 1px var(--chakra-colors-brand-400)",
+            },
+          },
+        },
+      },
+      defaultProps: {
+        variant: "outline",
+      },
+    },
+    Switch: {
+      baseStyle: {
+        track: {
+          _checked: {
+            bg: "brand.500",
+          },
+        },
+      },
+    },
   },
 });
