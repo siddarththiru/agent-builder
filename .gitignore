@@ -22,3 +22,7 @@ yarn-error.log*
 # Dev Testing Folders and notes
 Readme files/
 Test files/
+
+# Build Artifacts
+dist/
+build/
