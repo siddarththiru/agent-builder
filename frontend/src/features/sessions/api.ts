@@ -1,6 +1,5 @@
 import { http, parseApiError } from "../../api/http";
 import {
-  RunAgentRequest,
   RunAgentResponse,
   SessionDetail,
   SessionListResponse,
@@ -42,18 +41,6 @@ export const getSessionDetail = async (sessionId: string): Promise<SessionDetail
 export const getSessionTimeline = async (sessionId: string): Promise<SessionTimelineResponse> => {
   const response = await http.get<SessionTimelineResponse>(`/investigation/sessions/${sessionId}/events`);
   return response.data;
-};
-
-export const runAgent = async (request: RunAgentRequest): Promise<RunAgentResponse> => {
-  try {
-    const response = await http.post<RunAgentResponse>("/agents/run-agent", {
-      agent_id: request.agentId,
-      user_input: request.userInput,
-    });
-    return response.data;
-  } catch (error) {
-    throw new Error(parseApiError(error, "Unable to run agent."));
-  }
 };
 
 export const resumeAgent = async (sessionId: string): Promise<RunAgentResponse> => {

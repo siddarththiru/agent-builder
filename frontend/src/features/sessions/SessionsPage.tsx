@@ -5,14 +5,12 @@ import {
   Input,
   Select,
   Text,
-  Textarea,
   VStack,
   useToast,
 } from "@chakra-ui/react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { DataTable } from "../../components/operations/DataTable";
-import { DetailCard } from "../../components/operations/DetailCard";
 import { ErrorPanel } from "../../components/operations/ErrorPanel";
 import { FilterBar } from "../../components/operations/FilterBar";
 import { LoadingPanel } from "../../components/operations/LoadingPanel";
@@ -21,7 +19,7 @@ import { SessionStatusBadge } from "../../components/operations/SessionStatusBad
 import { Button } from "../../components/ui/Button";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { formatDateTime } from "../../lib/format";
-import { getSessionDetail, getSessionTimeline, listSessions, resumeAgent, runAgent } from "./api";
+import { getSessionDetail, getSessionTimeline, listSessions, resumeAgent } from "./api";
 import { SessionDetail, SessionEvent, SessionSummary } from "./types";
 
 const PAGE_SIZE = 10;
@@ -54,13 +52,6 @@ export const SessionsPage = () => {
   const [selectedEvents, setSelectedEvents] = useState<SessionEvent[] | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
-
-  const [agentId, setAgentId] = useState("");
-  const [userInput, setUserInput] = useState(
-    "Assess the operational status of the connected workflow and report anomalies."
-  );
-  const [runError, setRunError] = useState<string | null>(null);
-  const [isRunning, setIsRunning] = useState(false);
 
   const selectedSummary = useMemo(
     () => sessions.find((session) => session.session_id === selectedSessionId),
@@ -117,9 +108,6 @@ export const SessionsPage = () => {
         ]);
         setSelectedDetail(detail);
         setSelectedEvents(timeline.events);
-        if (!agentId) {
-          setAgentId(String(detail.agent_id));
-        }
       } catch (error) {
         setDetailError(error instanceof Error ? error.message : "Unable to load session detail.");
         setSelectedDetail(null);
@@ -163,36 +151,6 @@ export const SessionsPage = () => {
       return;
     }
     setSearchParams({});
-  };
-
-  const handleRunAgent = async () => {
-    const parsedAgentId = Number(agentId);
-    if (!Number.isFinite(parsedAgentId) || parsedAgentId <= 0) {
-      setRunError("Enter a valid agent ID.");
-      return;
-    }
-    if (!userInput.trim()) {
-      setRunError("Enter a user input prompt.");
-      return;
-    }
-
-    setRunError(null);
-    setIsRunning(true);
-    try {
-      const result = await runAgent({ agentId: parsedAgentId, userInput });
-      toast({
-        title: "Agent started",
-        description: `Session ${result.session_id} is now ${result.status}.`,
-        status: "success",
-        duration: 4000,
-        isClosable: true,
-      });
-      setSearchParams({ sessionId: result.session_id });
-    } catch (error) {
-      setRunError(error instanceof Error ? error.message : "Unable to run agent.");
-    } finally {
-      setIsRunning(false);
-    }
   };
 
   const handleResume = async () => {
@@ -339,27 +297,6 @@ export const SessionsPage = () => {
             position={{ base: "static", xl: "sticky" }}
             top={{ base: "auto", xl: "92px" }}
           >
-            <DetailCard title="Run agent" subtitle="Secondary control for starting a new session by agent ID">
-              <VStack align="stretch" spacing={4}>
-                <Input
-                  value={agentId}
-                  onChange={(event) => setAgentId(event.target.value)}
-                  placeholder="Agent ID"
-                  type="number"
-                />
-                <Textarea
-                  value={userInput}
-                  onChange={(event) => setUserInput(event.target.value)}
-                  minH="140px"
-                  placeholder="User input for the runtime"
-                />
-                {runError ? <Text color="status.danger">{runError}</Text> : null}
-                <Button onClick={handleRunAgent} isLoading={isRunning} alignSelf="start">
-                  Run agent
-                </Button>
-              </VStack>
-            </DetailCard>
-
             <SessionDetailPanel
               detail={selectedDetail || selectedSummary || null}
               events={selectedEvents}

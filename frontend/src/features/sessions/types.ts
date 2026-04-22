@@ -49,11 +49,6 @@ export type SessionTimelineResponse = {
   event_count: number;
 };
 
-export type RunAgentRequest = {
-  agentId: number;
-  userInput: string;
-};
-
 export type RunAgentResponse = {
   session_id: string;
   status: string;
