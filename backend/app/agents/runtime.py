@@ -38,6 +38,9 @@ class AgentRuntime:
         self.tools_dict: Dict[str, AgentDefinitionTool] = {
             tool.name: tool for tool in agent_definition.tools
         }
+        self.tool_name_by_function_name: Dict[str, str] = {
+            self._tool_function_name(tool): tool.name for tool in agent_definition.tools
+        }
         self.chat_model = self._bind_tools(chat_model)
         
         self.system_prompt = self._build_system_prompt()
@@ -55,12 +58,19 @@ class AgentRuntime:
     def _build_tool_specs(self) -> List[Dict[str, Any]]:
         return [
             {
-                "name": tool.name,
+                "name": self._tool_function_name(tool),
                 "description": tool.description,
                 "parameters": tool.input_schema,
             }
             for tool in self.agent_def.tools
         ]
+
+    @staticmethod
+    def _tool_function_name(tool: AgentDefinitionTool) -> str:
+        return f"tool_{tool.id}"
+
+    def _resolve_tool_name(self, tool_call_name: str) -> str:
+        return self.tool_name_by_function_name.get(tool_call_name, tool_call_name)
 
     def _bind_tools(self, chat_model: BaseChatModel) -> BaseChatModel:
         if not self.agent_def.tools:
@@ -328,7 +338,7 @@ class AgentRuntime:
                     }
 
                 pending_call = tool_calls[0]
-                tool_name = pending_call.get("name", "unknown")
+                tool_name = self._resolve_tool_name(pending_call.get("name", "unknown"))
                 tool_def = self.tools_dict.get(tool_name)
                 if not tool_def:
                     return {
@@ -409,7 +419,7 @@ class AgentRuntime:
                 "error": "No pending tool call"
             }
         
-        tool_name = pending_call.get("name", "unknown")
+        tool_name = self._resolve_tool_name(pending_call.get("name", "unknown"))
         tool_params = pending_call.get("args", {})
         tool_decision = state.get("pending_tool_decision")
         
