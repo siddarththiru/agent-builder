@@ -568,7 +568,7 @@ class AgentRuntime:
             raise ValueError(f"No pending tool call found for session {session_id}")
 
         # 4. Execute the approved tool (bypass interception this time)
-        tool_name = pending_tool_call.get("name", "unknown")
+        tool_name = self._resolve_tool_name(pending_tool_call.get("name", "unknown"))
         tool_params = pending_tool_call.get("args", {})
         
         try:

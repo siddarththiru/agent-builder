@@ -68,6 +68,49 @@ def _get_agent_or_404(agent_id: int, session: Session) -> models.Agent:
     return agent
 
 
+def _persist_resume_assistant_reply(
+    session_id: str,
+    result: Dict[str, Any],
+    session: Session,
+) -> None:
+    if result.get("status") != "completed":
+        return
+
+    final_output = result.get("final_output")
+    if not isinstance(final_output, str) or not final_output.strip():
+        return
+
+    # Only persist resume output for chat-backed sessions that already have history.
+    has_chat_history = session.exec(
+        select(models.ChatMessage.id)
+        .where(models.ChatMessage.session_id == session_id)
+        .limit(1)
+    ).first()
+    if has_chat_history is None:
+        return
+
+    latest_message = session.exec(
+        select(models.ChatMessage)
+        .where(models.ChatMessage.session_id == session_id)
+        .order_by(models.ChatMessage.created_at.desc(), models.ChatMessage.id.desc())
+    ).first()
+    if (
+        latest_message
+        and latest_message.role == "assistant"
+        and latest_message.content == final_output
+    ):
+        return
+
+    assistant_msg = models.ChatMessage(
+        session_id=session_id,
+        role="assistant",
+        content=final_output,
+        metadata=None,
+    )
+    session.add(assistant_msg)
+    session.commit()
+
+
 @router.get("", response_model=List[schemas.AgentSummaryRead])
 def list_agents(session: Session = Depends(get_session)) -> List[schemas.AgentSummaryRead]:
     agents = session.exec(select(models.Agent)).all()
@@ -706,6 +749,8 @@ def resume_agent(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to resume session: {str(e)}"
         )
+
+    _persist_resume_assistant_reply(session_id, result, session)
     
     return schemas.RunAgentResponse(
         session_id=result["session_id"],
