@@ -9,9 +9,10 @@ import { builderSteps } from "./constants";
 import { MetadataStep } from "./components/MetadataStep";
 import { PolicyStep } from "./components/PolicyStep";
 import { ReviewStep } from "./components/ReviewStep";
+import { SafetyStep } from "./components/SafetyStep";
 import { ToolsStep } from "./components/ToolsStep";
 import { BuilderDraft, BuilderValidationErrors, ToolOption } from "./types";
-import { validateMetadata, validatePolicy, validateTools } from "./validation";
+import { validateMetadata, validatePolicy, validateSafety, validateTools } from "./validation";
 
 const initialDraft: BuilderDraft = {
   metadata: {
@@ -24,6 +25,16 @@ const initialDraft: BuilderDraft = {
   policy: {
     frequencyLimit: "",
     requireApprovalForAllToolCalls: false,
+    intentGuardEnabled: true,
+    intentGuardModelMode: "dedicated",
+    intentGuardModel: "gemini-2.5-flash",
+    intentGuardIncludeConversation: true,
+    intentGuardIncludeToolArgs: false,
+    intentGuardRiskTolerance: "balanced",
+    intentGuardActionLow: "ignore",
+    intentGuardActionMedium: "clarify",
+    intentGuardActionHigh: "pause_for_approval",
+    intentGuardActionCritical: "block",
   },
 };
 
@@ -113,6 +124,9 @@ export const BuilderPage = () => {
     if (activeStep.key === "policy") {
       validation = validatePolicy(draft);
     }
+    if (activeStep.key === "safety") {
+      validation = validateSafety(draft);
+    }
 
     setErrors(validation);
     return Object.keys(validation).length === 0;
@@ -136,10 +150,12 @@ export const BuilderPage = () => {
     const metadataErrors = validateMetadata(draft);
     const toolErrors = validateTools(draft);
     const policyErrors = validatePolicy(draft);
+    const safetyErrors = validateSafety(draft);
     const mergedErrors = {
       ...metadataErrors,
       ...toolErrors,
       ...policyErrors,
+      ...safetyErrors,
     };
 
     if (Object.keys(mergedErrors).length > 0) {
@@ -242,6 +258,10 @@ export const BuilderPage = () => {
 
         {activeStep.key === "policy" ? (
           <PolicyStep policy={draft.policy} errors={errors} onPolicyChange={updatePolicy} />
+        ) : null}
+
+        {activeStep.key === "safety" ? (
+          <SafetyStep policy={draft.policy} errors={errors} onPolicyChange={updatePolicy} />
         ) : null}
 
         {activeStep.key === "review" ? <ReviewStep draft={draft} tools={tools} /> : null}

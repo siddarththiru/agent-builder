@@ -1,6 +1,10 @@
 export type AgentPolicySummary = {
   frequency_limit: number | null;
   require_approval_for_all_tool_calls: boolean;
+  intent_guard_enabled: boolean;
+  intent_guard_action_medium: string;
+  intent_guard_action_high: string;
+  intent_guard_action_critical: string;
 };
 
 export type AgentSummary = {
@@ -34,6 +38,16 @@ export type AgentPolicy = {
   agent_id: number;
   frequency_limit: number | null;
   require_approval_for_all_tool_calls: boolean;
+  intent_guard_enabled: boolean;
+  intent_guard_model_mode: "dedicated" | "same_as_agent";
+  intent_guard_model: string | null;
+  intent_guard_include_conversation: boolean;
+  intent_guard_include_tool_args: boolean;
+  intent_guard_risk_tolerance: "lenient" | "balanced" | "strict";
+  intent_guard_action_low: any;
+  intent_guard_action_medium: any;
+  intent_guard_action_high: any;
+  intent_guard_action_critical: any;
 };
 
 export type AgentTool = {
@@ -62,6 +76,16 @@ export type AgentDefinition = {
     allowed_tool_ids: number[];
     frequency_limit: number | null;
     require_approval_for_all_tool_calls: boolean;
+    intent_guard_enabled: boolean;
+    intent_guard_model_mode: "dedicated" | "same_as_agent";
+    intent_guard_model: string | null;
+    intent_guard_include_conversation: boolean;
+    intent_guard_include_tool_args: boolean;
+    intent_guard_risk_tolerance: "lenient" | "balanced" | "strict";
+    intent_guard_action_low: any;
+    intent_guard_action_medium: any;
+    intent_guard_action_high: any;
+    intent_guard_action_critical: any;
   };
 };
 
@@ -116,4 +140,14 @@ export type AgentMutableMetadata = {
 export type AgentMutablePolicy = {
   frequencyLimit: string;
   requireApprovalForAllToolCalls: boolean;
+  intentGuardEnabled: boolean;
+  intentGuardModelMode: "dedicated" | "same_as_agent";
+  intentGuardModel: string;
+  intentGuardIncludeConversation: boolean;
+  intentGuardIncludeToolArgs: boolean;
+  intentGuardRiskTolerance: "lenient" | "balanced" | "strict";
+  intentGuardActionLow: any;
+  intentGuardActionMedium: any;
+  intentGuardActionHigh: any;
+  intentGuardActionCritical: any;
 };

@@ -42,6 +42,16 @@ export const updateAgentPolicy = async (
       frequency_limit:
         policy.frequencyLimit.trim().length > 0 ? Number(policy.frequencyLimit) : null,
       require_approval_for_all_tool_calls: policy.requireApprovalForAllToolCalls,
+      intent_guard_enabled: policy.intentGuardEnabled,
+      intent_guard_model_mode: policy.intentGuardModelMode,
+      intent_guard_model: policy.intentGuardModel,
+      intent_guard_include_conversation: policy.intentGuardIncludeConversation,
+      intent_guard_include_tool_args: policy.intentGuardIncludeToolArgs,
+      intent_guard_risk_tolerance: policy.intentGuardRiskTolerance,
+      intent_guard_action_low: policy.intentGuardActionLow,
+      intent_guard_action_medium: policy.intentGuardActionMedium,
+      intent_guard_action_high: policy.intentGuardActionHigh,
+      intent_guard_action_critical: policy.intentGuardActionCritical,
     });
   } catch (error) {
     throw new Error(parseApiError(error, "Unable to update policy."));

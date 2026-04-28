@@ -13,6 +13,8 @@ import {
   useToast,
   Textarea,
   Text,
+  Alert,
+  AlertIcon,
 } from "@chakra-ui/react";
 import { useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
@@ -174,6 +176,43 @@ export const AgentChatPage = () => {
         duration: 3000,
       });
     }
+  };
+
+  const renderMessageMetadata = (metadata?: string | null) => {
+    if (!metadata) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(metadata);
+      const errorText = String(parsed.error || "");
+      if (errorText.toLowerCase().includes("intent guard")) {
+        return (
+          <Alert status="warning" borderRadius="md" mt={3}>
+            <AlertIcon />
+            <VStack align="start" spacing={1}>
+              <Text fontWeight="700">Safety Approval</Text>
+              <Text>{errorText}</Text>
+            </VStack>
+          </Alert>
+        );
+      }
+      if (parsed.status === "paused") {
+        return (
+          <Alert status="info" borderRadius="md" mt={3}>
+            <AlertIcon />
+            <VStack align="start" spacing={1}>
+              <Text fontWeight="700">Policy Approval</Text>
+              <Text>{errorText || "This turn is waiting for approval."}</Text>
+            </VStack>
+          </Alert>
+        );
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
   };
 
   return (
@@ -358,6 +397,7 @@ export const AgentChatPage = () => {
                               subtitle={formatDateTime(msg.created_at)}
                             >
                               <Text>{msg.content}</Text>
+                              {renderMessageMetadata(msg.metadata)}
                             </DetailCard>
                           ))
                         )}
@@ -420,6 +460,7 @@ export const AgentChatPage = () => {
                           >
                             <VStack align="start" spacing={2}>
                               <Text>{msg.content}</Text>
+                              {renderMessageMetadata(msg.metadata)}
                               {msg.metadata && (
                                 <Box
                                   p={2}

@@ -10,6 +10,7 @@ export type ApprovalSummary = {
   decided_by?: string | null;
   decision_reason?: string | null;
   risk_level?: string | null;
+  approval_type?: "Safety Approval" | "Policy Approval" | string;
 };
 
 export type ApprovalListResponse = {

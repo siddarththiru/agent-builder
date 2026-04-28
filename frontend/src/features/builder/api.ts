@@ -60,6 +60,16 @@ export const createAgentFromDraft = async (
           : null,
       require_approval_for_all_tool_calls:
         draft.policy.requireApprovalForAllToolCalls,
+      intent_guard_enabled: draft.policy.intentGuardEnabled,
+      intent_guard_model_mode: draft.policy.intentGuardModelMode,
+      intent_guard_model: draft.policy.intentGuardModel,
+      intent_guard_include_conversation: draft.policy.intentGuardIncludeConversation,
+      intent_guard_include_tool_args: draft.policy.intentGuardIncludeToolArgs,
+      intent_guard_risk_tolerance: draft.policy.intentGuardRiskTolerance,
+      intent_guard_action_low: draft.policy.intentGuardActionLow,
+      intent_guard_action_medium: draft.policy.intentGuardActionMedium,
+      intent_guard_action_high: draft.policy.intentGuardActionHigh,
+      intent_guard_action_critical: draft.policy.intentGuardActionCritical,
     });
 
     return {

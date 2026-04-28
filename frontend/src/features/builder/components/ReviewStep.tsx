@@ -23,6 +23,16 @@ export const ReviewStep = ({ draft, tools }: ReviewStepProps) => {
           : null,
       require_approval_for_all_tool_calls:
         draft.policy.requireApprovalForAllToolCalls,
+      intent_guard_enabled: draft.policy.intentGuardEnabled,
+      intent_guard_model_mode: draft.policy.intentGuardModelMode,
+      intent_guard_model: draft.policy.intentGuardModel,
+      intent_guard_include_conversation: draft.policy.intentGuardIncludeConversation,
+      intent_guard_include_tool_args: draft.policy.intentGuardIncludeToolArgs,
+      intent_guard_risk_tolerance: draft.policy.intentGuardRiskTolerance,
+      intent_guard_action_low: draft.policy.intentGuardActionLow,
+      intent_guard_action_medium: draft.policy.intentGuardActionMedium,
+      intent_guard_action_high: draft.policy.intentGuardActionHigh,
+      intent_guard_action_critical: draft.policy.intentGuardActionCritical,
     },
   };
 
@@ -39,6 +49,20 @@ export const ReviewStep = ({ draft, tools }: ReviewStepProps) => {
             { label: "Model", value: draft.metadata.model || "-" },
             { label: "Description", value: draft.metadata.description || "-" },
             { label: "Purpose", value: draft.metadata.purpose || "-" },
+          ]}
+        />
+      </FormSection>
+
+      <FormSection title="Safety summary">
+        <KeyValueList
+          items={[
+            { label: "Intent guard", value: draft.policy.intentGuardEnabled ? "Enabled" : "Disabled" },
+            { label: "Guard model mode", value: draft.policy.intentGuardModelMode },
+            { label: "Guard model", value: draft.policy.intentGuardModel },
+            { label: "Low risk", value: draft.policy.intentGuardActionLow },
+            { label: "Medium risk", value: draft.policy.intentGuardActionMedium },
+            { label: "High risk", value: draft.policy.intentGuardActionHigh },
+            { label: "Critical risk", value: draft.policy.intentGuardActionCritical },
           ]}
         />
       </FormSection>

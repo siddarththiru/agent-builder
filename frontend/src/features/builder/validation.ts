@@ -1,5 +1,13 @@
 import { BuilderDraft, BuilderValidationErrors } from "./types";
 
+const actionRanks = {
+  ignore: 0,
+  clarify: 1,
+  autonomous_decide: 2,
+  pause_for_approval: 3,
+  block: 4,
+};
+
 export const validateMetadata = (draft: BuilderDraft): BuilderValidationErrors => {
   const errors: BuilderValidationErrors = {};
 
@@ -23,9 +31,6 @@ export const validateMetadata = (draft: BuilderDraft): BuilderValidationErrors =
 };
 
 export const validateTools = (draft: BuilderDraft): BuilderValidationErrors => {
-  if (draft.selectedToolIds.length === 0) {
-    return { tools: "Select at least one tool before continuing." };
-  }
   return {};
 };
 
@@ -39,4 +44,27 @@ export const validatePolicy = (draft: BuilderDraft): BuilderValidationErrors => 
   }
 
   return errors;
+};
+
+export const validateSafety = (draft: BuilderDraft): BuilderValidationErrors => {
+  if (!draft.policy.intentGuardEnabled) {
+    return {};
+  }
+
+  const ranks = [
+    actionRanks[draft.policy.intentGuardActionLow],
+    actionRanks[draft.policy.intentGuardActionMedium],
+    actionRanks[draft.policy.intentGuardActionHigh],
+    actionRanks[draft.policy.intentGuardActionCritical],
+  ];
+
+  for (let index = 1; index < ranks.length; index += 1) {
+    if (ranks[index] < ranks[index - 1]) {
+      return {
+        safety: "Higher risk levels cannot be configured more leniently than lower risk levels.",
+      };
+    }
+  }
+
+  return {};
 };

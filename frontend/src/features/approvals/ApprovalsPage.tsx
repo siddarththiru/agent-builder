@@ -208,8 +208,15 @@ export const ApprovalsPage = () => {
     },
     {
       key: "tool",
-      header: "Tool",
-      render: (approval: ApprovalSummary) => <Text>{approval.tool_name}</Text>,
+      header: "Type",
+      render: (approval: ApprovalSummary) => (
+        <VStack align="start" spacing={1}>
+          <Text fontWeight="700">{approval.approval_type || "Policy Approval"}</Text>
+          <Text color="text.secondary" fontSize="sm">
+            {approval.tool_name}
+          </Text>
+        </VStack>
+      ),
     },
     {
       key: "requested",
@@ -345,6 +352,7 @@ export const ApprovalsPage = () => {
                               { label: "Session ID", value: selectedDetail.session_id },
                               { label: "Agent ID", value: String(selectedDetail.agent_id) },
                               { label: "Tool", value: selectedDetail.tool_name },
+                              { label: "Type", value: selectedDetail.approval_type || "Policy Approval" },
                               { label: "Requested", value: formatDateTime(selectedDetail.requested_at) },
                               { label: "Decided at", value: formatDateTime(selectedDetail.decided_at || null) },
                               { label: "Decided by", value: selectedDetail.decided_by || "-" },

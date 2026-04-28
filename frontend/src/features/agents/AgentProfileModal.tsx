@@ -45,6 +45,8 @@ import {
   AgentProfile,
 } from "./types";
 import { modelOptions } from "../builder/constants";
+import { SafetySettingsSection } from "../builder/components/SafetyStep";
+import { validateSafety } from "../builder/validation";
 
 interface AgentProfileModalProps {
   agentId: number | null;
@@ -100,6 +102,7 @@ export const AgentProfileModal = ({
 
   const [editingMetadata, setEditingMetadata] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState(false);
+  const [editingSafety, setEditingSafety] = useState(false);
   const [editingTools, setEditingTools] = useState(false);
 
   const [saveMetadataLoading, setSaveMetadataLoading] = useState(false);
@@ -136,6 +139,16 @@ export const AgentProfileModal = ({
             : "",
         requireApprovalForAllToolCalls:
           response.policy?.require_approval_for_all_tool_calls || false,
+        intentGuardEnabled: response.policy?.intent_guard_enabled ?? true,
+        intentGuardModelMode: response.policy?.intent_guard_model_mode || "dedicated",
+        intentGuardModel: response.policy?.intent_guard_model || "gemini-2.5-flash",
+        intentGuardIncludeConversation: response.policy?.intent_guard_include_conversation ?? true,
+        intentGuardIncludeToolArgs: response.policy?.intent_guard_include_tool_args ?? false,
+        intentGuardRiskTolerance: response.policy?.intent_guard_risk_tolerance || "balanced",
+        intentGuardActionLow: response.policy?.intent_guard_action_low || "ignore",
+        intentGuardActionMedium: response.policy?.intent_guard_action_medium || "clarify",
+        intentGuardActionHigh: response.policy?.intent_guard_action_high || "pause_for_approval",
+        intentGuardActionCritical: response.policy?.intent_guard_action_critical || "block",
       });
       setToolDraft(response.tools.map((tool) => tool.id));
     } catch (error) {
@@ -217,6 +230,21 @@ export const AgentProfileModal = ({
 
     setSavePolicyLoading(true);
     try {
+      const safetyErrors = validateSafety({
+        metadata: { name: "", description: "placeholder", purpose: "placeholder", model: "gemini-2.5-flash" },
+        selectedToolIds: [],
+        policy: policyDraft,
+      });
+      if (safetyErrors.safety) {
+        toast({
+          title: "Safety settings need review",
+          description: safetyErrors.safety,
+          status: "warning",
+          duration: 3000,
+        });
+        setSavePolicyLoading(false);
+        return;
+      }
       await updateAgentPolicy(profile.agent.id, policyDraft);
       toast({
         title: "Policy saved",
@@ -224,6 +252,7 @@ export const AgentProfileModal = ({
         duration: 3000,
       });
       setEditingPolicy(false);
+      setEditingSafety(false);
       await loadProfile(profile.agent.id);
       onProfileUpdated?.();
     } catch (error) {
@@ -325,6 +354,8 @@ export const AgentProfileModal = ({
 
   const latestSessions = profile ? profile.recent_sessions.slice(0, 3) : [];
   const latestApprovals = profile ? profile.recent_approvals.slice(0, 3) : [];
+  const hasMoreSessions = profile ? profile.recent_sessions.length > latestSessions.length : false;
+  const hasMoreApprovals = profile ? profile.recent_approvals.length > latestApprovals.length : false;
 
   const subtleActionButtonProps = {
     size: "sm" as const,
@@ -558,15 +589,17 @@ export const AgentProfileModal = ({
                       titleIcon={<CardTitleIcon path="M12 1a11 11 0 1 0 11 11A11.01 11.01 0 0 0 12 1zm1 11.59 3.3 3.29-1.42 1.42L11 13V6h2z" />}
                       subtitle="Latest runtime activity"
                       actions={
-                        <Button
-                          {...subtleActionButtonProps}
-                          onClick={() => {
-                            navigate(`/sessions?agentId=${profile.agent.id}`);
-                            onClose();
-                          }}
-                        >
-                          View more
-                        </Button>
+                        hasMoreSessions ? (
+                          <Button
+                            {...subtleActionButtonProps}
+                            onClick={() => {
+                              navigate(`/sessions?agentId=${profile.agent.id}`);
+                              onClose();
+                            }}
+                          >
+                            View more
+                          </Button>
+                        ) : null
                       }
                     >
                       <VStack align="stretch" spacing={2}>
@@ -656,6 +689,22 @@ export const AgentProfileModal = ({
                                         : "",
                                     requireApprovalForAllToolCalls:
                                       profile.policy?.require_approval_for_all_tool_calls || false,
+                                    intentGuardEnabled: profile.policy?.intent_guard_enabled ?? true,
+                                    intentGuardModelMode: profile.policy?.intent_guard_model_mode || "dedicated",
+                                    intentGuardModel: profile.policy?.intent_guard_model || "gemini-2.5-flash",
+                                    intentGuardIncludeConversation:
+                                      profile.policy?.intent_guard_include_conversation ?? true,
+                                    intentGuardIncludeToolArgs:
+                                      profile.policy?.intent_guard_include_tool_args ?? false,
+                                    intentGuardRiskTolerance:
+                                      profile.policy?.intent_guard_risk_tolerance || "balanced",
+                                    intentGuardActionLow: profile.policy?.intent_guard_action_low || "ignore",
+                                    intentGuardActionMedium:
+                                      profile.policy?.intent_guard_action_medium || "clarify",
+                                    intentGuardActionHigh:
+                                      profile.policy?.intent_guard_action_high || "pause_for_approval",
+                                    intentGuardActionCritical:
+                                      profile.policy?.intent_guard_action_critical || "block",
                                   });
                                 }
                               }}
@@ -680,6 +729,111 @@ export const AgentProfileModal = ({
                               value: profile.policy?.require_approval_for_all_tool_calls
                                 ? "Enabled"
                                 : "Disabled",
+                            },
+                            {
+                              label: "Intent guard",
+                              value: profile.policy?.intent_guard_enabled ? "Enabled" : "Disabled",
+                            },
+                            {
+                              label: "Safety high risk",
+                              value: profile.policy?.intent_guard_action_high || "pause_for_approval",
+                            },
+                          ]}
+                        />
+                      )}
+                    </DetailCard>
+
+                    <DetailCard
+                      title="Safety"
+                      titleIcon={<CardTitleIcon path="M12 2 4 5v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V5l-8-3zm-1 14-3-3 1.41-1.41L11 13.17l3.59-3.58L16 11l-5 5z" />}
+                      actions={
+                        editingSafety ? null : (
+                          <Button {...subtleActionButtonProps} onClick={() => setEditingSafety(true)}>
+                            Edit
+                          </Button>
+                        )
+                      }
+                    >
+                      {editingSafety && policyDraft ? (
+                        <VStack align="stretch" spacing={3}>
+                          <SafetySettingsSection
+                            policy={policyDraft}
+                            onPolicyChange={(key, value) =>
+                              setPolicyDraft((prev) => (prev ? { ...prev, [key]: value } : prev))
+                            }
+                          />
+                          <HStack>
+                            <Button size="sm" onClick={() => void savePolicy()} isLoading={savePolicyLoading}>
+                              Save
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setEditingSafety(false);
+                                if (profile) {
+                                  setPolicyDraft({
+                                    frequencyLimit:
+                                      profile.policy?.frequency_limit !== null &&
+                                      profile.policy?.frequency_limit !== undefined
+                                        ? String(profile.policy.frequency_limit)
+                                        : "",
+                                    requireApprovalForAllToolCalls:
+                                      profile.policy?.require_approval_for_all_tool_calls || false,
+                                    intentGuardEnabled: profile.policy?.intent_guard_enabled ?? true,
+                                    intentGuardModelMode: profile.policy?.intent_guard_model_mode || "dedicated",
+                                    intentGuardModel: profile.policy?.intent_guard_model || "gemini-2.5-flash",
+                                    intentGuardIncludeConversation:
+                                      profile.policy?.intent_guard_include_conversation ?? true,
+                                    intentGuardIncludeToolArgs:
+                                      profile.policy?.intent_guard_include_tool_args ?? false,
+                                    intentGuardRiskTolerance:
+                                      profile.policy?.intent_guard_risk_tolerance || "balanced",
+                                    intentGuardActionLow: profile.policy?.intent_guard_action_low || "ignore",
+                                    intentGuardActionMedium:
+                                      profile.policy?.intent_guard_action_medium || "clarify",
+                                    intentGuardActionHigh:
+                                      profile.policy?.intent_guard_action_high || "pause_for_approval",
+                                    intentGuardActionCritical:
+                                      profile.policy?.intent_guard_action_critical || "block",
+                                  });
+                                }
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                          </HStack>
+                        </VStack>
+                      ) : (
+                        <MetadataList
+                          items={[
+                            {
+                              label: "Intent guard",
+                              value: profile.policy?.intent_guard_enabled ? "Enabled" : "Disabled",
+                            },
+                            {
+                              label: "Model mode",
+                              value: profile.policy?.intent_guard_model_mode || "dedicated",
+                            },
+                            {
+                              label: "Guard model",
+                              value: profile.policy?.intent_guard_model || "gemini-2.5-flash",
+                            },
+                            {
+                              label: "Low risk",
+                              value: profile.policy?.intent_guard_action_low || "ignore",
+                            },
+                            {
+                              label: "Medium risk",
+                              value: profile.policy?.intent_guard_action_medium || "clarify",
+                            },
+                            {
+                              label: "High risk",
+                              value: profile.policy?.intent_guard_action_high || "pause_for_approval",
+                            },
+                            {
+                              label: "Critical risk",
+                              value: profile.policy?.intent_guard_action_critical || "block",
                             },
                           ]}
                         />
@@ -774,15 +928,17 @@ export const AgentProfileModal = ({
                       titleIcon={<CardTitleIcon path="M3 5h10v2H3zm0 6h10v2H3zm0 6h7v2H3zm14.59-8L15 11.59 13.41 10 12 11.41 15 14.41 19 10.41 17.59 9z" />}
                       subtitle="Latest approval decisions"
                       actions={
-                        <Button
-                          {...subtleActionButtonProps}
-                          onClick={() => {
-                            navigate(`/approvals?agentId=${profile.agent.id}`);
-                            onClose();
-                          }}
-                        >
-                          View more
-                        </Button>
+                        hasMoreApprovals ? (
+                          <Button
+                            {...subtleActionButtonProps}
+                            onClick={() => {
+                              navigate(`/approvals?agentId=${profile.agent.id}`);
+                              onClose();
+                            }}
+                          >
+                            View more
+                          </Button>
+                        ) : null
                       }
                     >
                       <VStack align="stretch" spacing={2}>
