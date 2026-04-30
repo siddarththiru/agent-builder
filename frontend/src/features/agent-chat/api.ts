@@ -1,5 +1,5 @@
 import { http, parseApiError } from "../../api/http";
-import { ChatMessage, SessionDetail, SessionSummary } from "./types";
+import { ChatMessage, SessionDetail, SessionLogsResponse, SessionSummary } from "./types";
 
 export async function listAgentSessions(agentId: number): Promise<SessionSummary[]> {
   const response = await http.get(`/agents/${agentId}/sessions`);
@@ -21,12 +21,21 @@ export async function getSessionMessages(sessionId: string): Promise<ChatMessage
   return response.data;
 }
 
+export async function getSessionLogs(sessionId: string): Promise<SessionLogsResponse> {
+  const response = await http.get(`/logs/sessions/${sessionId}`);
+  return response.data;
+}
+
 export async function sendMessage(sessionId: string, content: string, metadata?: string): Promise<ChatMessage> {
   try {
-    const response = await http.post(`/sessions/${sessionId}/messages`, {
-      content,
-      metadata,
-    });
+    const response = await http.post(
+      `/sessions/${sessionId}/messages`,
+      {
+        content,
+        metadata,
+      },
+      { timeout: 120000 }
+    );
     return response.data;
   } catch (error: any) {
     throw new Error(error?.response?.data?.detail || "Failed to send message");

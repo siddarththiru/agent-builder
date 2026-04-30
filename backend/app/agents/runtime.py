@@ -205,6 +205,19 @@ class AgentRuntime:
 
     def run_chat_turn(self, session_id: str, conversation_messages: List[HumanMessage | AIMessage]) -> Dict[str, Any]:
         tool_adapter, interception_hook, intent_guard = self._build_runtime_components(session_id)
+        latest_user_message = next(
+            (
+                getattr(message, "content", "")
+                for message in reversed(conversation_messages)
+                if isinstance(message, HumanMessage)
+            ),
+            "",
+        )
+        self.logger.log_session_start(
+            session_id=session_id,
+            agent_id=self.agent_def.agent_id,
+            user_input=str(latest_user_message),
+        )
 
         initial_state: RuntimeState = {
             "session_id": session_id,
@@ -225,6 +238,14 @@ class AgentRuntime:
             if status == "paused":
                 self._save_paused_state(final_state)
 
+            self.logger.log_session_end(
+                session_id=session_id,
+                agent_id=self.agent_def.agent_id,
+                status=status,
+                final_output=final_state.get("final_output"),
+                error=final_state.get("error"),
+            )
+
             return {
                 "session_id": session_id,
                 "status": status,
@@ -233,6 +254,12 @@ class AgentRuntime:
                 "state": final_state,
             }
         except Exception as exc:
+            self.logger.log_session_end(
+                session_id=session_id,
+                agent_id=self.agent_def.agent_id,
+                status="failed",
+                error=str(exc),
+            )
             return {
                 "session_id": session_id,
                 "status": "failed",

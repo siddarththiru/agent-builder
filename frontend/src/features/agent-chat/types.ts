@@ -25,3 +25,18 @@ export type SessionDetail = {
   updated_at: string;
   messages: ChatMessage[];
 };
+
+export type SessionLog = {
+  id: number;
+  session_id: string;
+  agent_id: number;
+  event_type: string;
+  event_data: Record<string, unknown>;
+  timestamp: string | null;
+};
+
+export type SessionLogsResponse = {
+  session_id: string;
+  logs: SessionLog[];
+  count: number;
+};

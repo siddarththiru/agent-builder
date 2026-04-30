@@ -20,6 +20,8 @@ import { formatDateTime } from "../../lib/format";
 import { listSessions, resumeAgent } from "./api";
 import { SessionSummary } from "./types";
 import { SessionDetailModal } from "./SessionDetailModal";
+import { listAgents } from "../agents/api";
+import { AgentSummary } from "../agents/types";
 
 const PAGE_SIZE = 10;
 
@@ -44,6 +46,7 @@ export const SessionsPage = () => {
     agentId: agentIdFromQuery,
   });
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
+  const [agentNames, setAgentNames] = useState<Record<number, string>>({});
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -86,6 +89,21 @@ export const SessionsPage = () => {
 
     void loadSessions();
   }, [appliedFilters, offset]);
+
+  useEffect(() => {
+    const loadAgents = async () => {
+      try {
+        const agents: AgentSummary[] = await listAgents();
+        const map: Record<number, string> = {};
+        agents.forEach((a) => (map[a.id] = a.name));
+        setAgentNames(map);
+      } catch (err) {
+        // ignore agent name failures — fall back to id-only display
+      }
+    };
+
+    void loadAgents();
+  }, []);
 
   const openSession = (sessionId: string) => {
     setModalSessionId(sessionId);
@@ -164,7 +182,7 @@ export const SessionsPage = () => {
             <VStack align="start" spacing={1}>
               <Text fontWeight="700">{session.session_id}</Text>
               <Text color="text.secondary" fontSize="sm">
-                Agent {session.agent_id}
+                Agent {session.agent_id} {agentNames[session.agent_id] ? `— ${agentNames[session.agent_id]}` : ""}
               </Text>
             </VStack>
           ),
@@ -182,7 +200,11 @@ export const SessionsPage = () => {
         {
           key: "updated",
           header: "Updated",
-          render: (session) => <Text color="text.secondary">{formatDateTime(session.last_updated)}</Text>,
+          render: (session) => (
+            <Text color="text.secondary">
+              {formatDateTime(session.last_updated || session.created_at)}
+            </Text>
+          ),
         },
       ]}
     />
